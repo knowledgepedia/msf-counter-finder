@@ -1,7 +1,7 @@
 import type { Character, GameMode } from '../types';
 
 // The URL of our new backend server.
-const API_URL = 'http://localhost:3001/api/getCounter';
+const API_URL = 'http://localhost:8000/api/getCounter';
 
 // Helper function to format the structured JSON response from the server into a Markdown string
 const formatApiResponse = (data: any): string => {

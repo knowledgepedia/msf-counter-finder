@@ -7,7 +7,7 @@ import type { Character, GameMode } from './types';
 import { GAME_MODES, MAX_TEAM_SIZE } from './constants';
 
 // The URL of our backend server.
-const API_URL = 'http://localhost:3001/api/getCounter';
+const API_URL = 'http://localhost:8000/api/getCounter';
 
 // Helper function to format the structured JSON response from the server into a Markdown string
 const formatApiResponse = (data: any): string => {

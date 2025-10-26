@@ -8,42 +8,27 @@ const qs = require('qs');     // We'll use qs to format our request body
 
 // Initialize the Express app
 const app = express();
-const PORT = process.env.PORT || 3001; // Your frontend is on 3001, so let's use 8000
-// Note: Your frontend App.tsx/geminiService.ts is calling localhost:3001. 
-// You should run your frontend and backend on DIFFERENT ports.
-// I'll set this to 8000. Please update your frontend files to call:
-// const API_URL = 'http://localhost:8000/api/getCounter';
+const PORT = 8000; // Keep backend on 8000
 
 // --- Constants for MSF API ---
 const MSF_TOKEN_URL = 'https://hydra-public.prod.m3.scopelypv.com/oauth2/token';
+const MSF_API_BASE_URL = 'https://api.marvelstrikeforce.com'; // Base URL for API calls
 const MSF_STATIC_KEY = '17wMKJLRxy3pYDCKG5ciP7VSU45OVumB2biCzzgw';
 
 // Get your personal secrets from the .env file
 const MY_CLIENT_ID = process.env.MSF_CLIENT_ID;
-const MY_CLIENT_SECRET = process.env.MSF_API_KEY; // You named this MSF_API_KEY in the .env
+const MY_CLIENT_SECRET = process.env.MSF_API_KEY;
 
 // --- Middleware ---
 app.use(cors()); // Allows our frontend to talk to this server
 app.use(express.json()); // Allows the server to understand JSON
 
 // --- Helper Function: Get MSF Access Token ---
-/**
- * This function performs the OAuth 2.0 Client Credentials flow
- * to get a temporary Bearer Token from the MSF API.
- */
+// (This function is unchanged from Phase 3)
 async function getMsfToken() {
   console.log('Attempting to get MSF token...');
-
-  // 1. Create the Basic Auth header
-  // This is a Base64 encoding of "YOUR_CLIENT_ID:YOUR_CLIENT_SECRET"
   const authString = Buffer.from(`${MY_CLIENT_ID}:${MY_CLIENT_SECRET}`).toString('base64');
-  
-  // 2. Define the request body
-  const requestBody = {
-    grant_type: 'client_credentials'
-  };
-
-  // 3. Define the request headers
+  const requestBody = { grant_type: 'client_credentials' };
   const headers = {
     'Authorization': `Basic ${authString}`,
     'x-api-key': MSF_STATIC_KEY,
@@ -51,32 +36,21 @@ async function getMsfToken() {
   };
 
   try {
-    // 4. Make the POST request
     const response = await axios.post(
       MSF_TOKEN_URL,
-      qs.stringify(requestBody), // Use qs to format the body correctly
+      qs.stringify(requestBody),
       { headers: headers }
     );
-
-    // 5. Success! Return the access token.
     const token = response.data.access_token;
     console.log('Successfully fetched MSF token!');
     return token;
 
   } catch (error) {
-    // 6. Handle errors
     console.error('Error fetching MSF token:');
     if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
       console.error('Data:', error.response.data);
       console.error('Status:', error.response.status);
-      console.error('Headers:', error.response.headers);
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error('Request:', error.request);
     } else {
-      // Something happened in setting up the request that triggered an Error
       console.error('Error Message:', error.message);
     }
     return null;
@@ -87,16 +61,14 @@ async function getMsfToken() {
 
 /**
  * GET /api/test
- * We'll use this to manually test our token function.
+ * (This is unchanged, you can keep it for testing your token)
  */
 app.get('/api/test', async (req, res) => {
   console.log('Test endpoint was hit! Trying to get token...');
   const token = await getMsfToken();
-
   if (token) {
     res.json({ 
       message: 'SUCCESS! We got a token from the MSF API.',
-      // We'll just show the first few chars for security
       token_preview: token.substring(0, 15) + '...' 
     });
   } else {
@@ -109,30 +81,72 @@ app.get('/api/test', async (req, res) => {
 /**
  * POST /api/getCounter
  * This is the main endpoint our frontend will call.
+ * THIS IS THE PART WE ARE UPDATING.
  */
-app.post('/api/getCounter', (req, res) => {
+app.post('/api/getCounter', async (req, res) => {
   console.log('Received request on /api/getCounter');
   console.log('Request Body:', JSON.stringify(req.body, null, 2));
 
-  // TODO in Phase 4:
-  // 1. const token = await getMsfToken();
-  // 2. Use this token to call the *actual* MSF data API (e.g., /api/player/v1/characters)
-  // 3. Pass that data to the Gemini API
-  // 4. Return the Gemini response
+  // --- NEW LOGIC FOR PHASE 4 ---
+  try {
+    // 1. Get a fresh MSF token
+    const token = await getMsfToken();
+    if (!token) {
+      // If we failed to get a token, send a 500 error
+      throw new Error('Failed to authenticate with MSF API.');
+    }
 
-  // For now, we still return the placeholder.
-  const placeholderResponse = {
-    message: "Data received successfully. AI call is not yet implemented.",
-    counters: [
+    // 2. Prepare to call a real MSF endpoint
+    // We'll use our new token in the Authorization header
+    const apiHeaders = {
+      'Authorization': `Bearer ${token}`,
+      'x-api-key': MSF_STATIC_KEY,
+      'User-Agent': 'APIClient/1.0 (Server)' // Recommended by docs
+    };
+
+    // 3. Make the API Call
+    // We'll try the /player/v1/recruiting/recruits endpoint as a test
+    // We'll pass the enemyTeam data just to see what happens
+    const testEndpoint = '/player/v1/recruiting/recruits';
+    
+    console.log(`Making authenticated call to: ${MSF_API_BASE_URL}${testEndpoint}`);
+    
+    const msfResponse = await axios.get(
+      `${MSF_API_BASE_URL}${testEndpoint}`,
       {
-        teamName: "Placeholder Counter 1",
-        team: ["Black Knight", "Apocalypse", "Ms. Marvel (Hard Light)", "Doctor Doom", "Kang the Conqueror"],
-        why: "This team provides a mix of high damage, survivability, and turn meter control that can overwhelm many meta defenses. Black Knight's taunt and damage immunity is key to survival.",
-        risk: "This is a powerful but expensive team. It may be susceptible to ability block or trauma from specific enemy compositions."
+        headers: apiHeaders,
+        // We can try passing the enemy team as params
+        params: {
+          enemyTeam: req.body.enemyTeam
+        }
       }
-    ]
-  };
-  res.status(200).json(placeholderResponse);
+    );
+
+    // 4. SUCCESS! Send the *real* MSF API data back to the frontend.
+    console.log('SUCCESS! Got a real response from MSF API.');
+    res.status(200).json(msfResponse.data);
+
+  } catch (error) {
+    // 5. If *anything* fails (getting token, or the API call)...
+    console.error('Error in /api/getCounter:');
+    if (error.response) {
+      // The API call itself failed
+      console.error('Data:', error.response.data);
+      console.error('Status:', error.response.status);
+      // Send the API's error message back to the frontend
+      res.status(error.response.status).json({
+        message: "Failed to get data from MSF API.",
+        error: error.response.data
+      });
+    } else {
+      // Something else failed (like getting our token)
+      console.error('Error Message:', error.message);
+      res.status(500).json({
+        message: "An internal server error occurred.",
+        error: error.message
+      });
+    }
+  }
 });
 
 // --- Server Initialization ---
