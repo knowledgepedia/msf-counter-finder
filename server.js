@@ -2,7 +2,7 @@
 // To run:
 // 1. npm install
 // 2. node server.js
-
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
