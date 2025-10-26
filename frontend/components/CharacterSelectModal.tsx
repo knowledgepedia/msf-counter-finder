@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { ALL_CHARACTERS } from '../../constants';
+import { ALL_CHARACTERS } from '../constants';
 
 interface CharacterSelectModalProps {
   isOpen: boolean;
