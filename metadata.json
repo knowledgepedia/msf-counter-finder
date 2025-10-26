@@ -1,0 +1,5 @@
+{
+  "name": "MSF Counter Finder",
+  "description": "An application to find the best counter teams for Marvel Strike Force. Select an enemy team, game mode, and get AI-powered recommendations for counters.",
+  "requestFramePermissions": []
+}
