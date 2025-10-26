@@ -1,4 +1,4 @@
-import type { Character, GameMode } from '../types';
+import type { Character, GameMode } from '.././types';
 
 // The URL of our new backend server.
 const API_URL = 'http://localhost:8000/api/getCounter';

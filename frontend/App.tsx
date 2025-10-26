@@ -141,7 +141,7 @@ const App: React.FC = () => {
                   character={char}
                   onSelect={() => handleOpenModal(index)}
                   onRemove={() => handleRemoveCharacter(index)}
-                  onUpdate={(field, value) => handleUpdateCharacter(index, field, value)}
+                  onUpdate={(field: keyof Character, value: string) => handleUpdateCharacter(index, field, value)}
                 />
               ))}
             </div>
